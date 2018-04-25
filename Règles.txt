@@ -1,0 +1,9 @@
+Oasis = ressource + 1 vie ;
+Aigle = -1 vie ;
+
+- Perso : Chat égyptien ? Pharaon ? Momie ? Oziris ?
+- Armes égyptiennes comme missiles
+- Tapis volant comme vaisseau ?
+  Ou char égyptien volant ?
+- But avoir des pièces d'or ?
+
