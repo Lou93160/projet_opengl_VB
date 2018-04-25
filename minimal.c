@@ -1,4 +1,5 @@
 #include "minimal.h"
+#include "main.c"
 
 /******* FUNCTIONS *******/
 
@@ -9,7 +10,7 @@ void resizeViewport(int w, int h) {
     WINDOW_HEIGHT = h;
     SDL_SetVideoMode(WINDOW_WIDTH, WINDOW_HEIGHT, BIT_PER_PIXEL, SDL_OPENGL | SDL_GL_DOUBLEBUFFER | SDL_RESIZABLE);
     glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-    glMatrixMode(GL_MODELVIEW); // PROJECTION?
+    glMatrixMode(GL_PROJECTION); // MODELVIEW?
     glLoadIdentity();
     gluOrtho2D(-1., 1., -1., 1.);
 }
@@ -76,13 +77,15 @@ void drawBG(Background *bg, float scaleW, float scaleH){
     glPopMatrix();       
 }
 
-/* Function which call the other specifics to draw arrow, bg or ship */
+/* Function which call the other specifics to draw arrow, bg or ship 
+Apply texture on a quads */
 void draw(GLuint textureID, float scaleW, float scaleH){
         /* Transparency */
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        /* Brackground drawing */
+        //glEnable(GL_BLEND);
         glEnable(GL_TEXTURE_2D);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        //glShadeModel(GL_SMOOTH);
+        /* Brackground drawing */
         glBindTexture(GL_TEXTURE_2D, textureID);
             glPushMatrix();
                 glScalef(scaleW,scaleH,0);
@@ -102,8 +105,8 @@ void draw(GLuint textureID, float scaleW, float scaleH){
             glPopMatrix();
 
         glDisable(GL_TEXTURE_2D);
-        glDisable(GL_BLEND);
         glBindTexture(GL_TEXTURE_2D, 0);
+        //glDisable(GL_BLEND);
 }
 
 /*
@@ -115,7 +118,7 @@ void createImg(GLuint textureID, SDL_Surface* img){
     glBindTexture(GL_TEXTURE_2D, textureID);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    SDL_SetColorKey(img,SDL_SRCCOLORKEY,SDL_MapRGBA(img->format,0,255,0,0));
+    //SDL_SetColorKey(img,SDL_SRCCOLORKEY,SDL_MapRGBA(img->format,0,255,0,0));
     glTexImage2D(
         GL_TEXTURE_2D,
         0,
@@ -127,6 +130,7 @@ void createImg(GLuint textureID, SDL_Surface* img){
         GL_UNSIGNED_BYTE,
         img->pixels
     );
+    /* Debind texture */
     glBindTexture(GL_TEXTURE_2D, 0);
     /* Free memory */
     SDL_FreeSurface(img);
@@ -212,10 +216,10 @@ void pushArrow(Ship *s){
             s->lstA = s->lstA->Asuiv;
         }
         /* Allocation of the new arrow & image loading in loadArrow*/
-        s->lstA = loadArrow(s->lstA, "./img/elts_green/arrow.bmp", 1, s->pos);
+        s->lstA = loadArrow(s->lstA, "./img/elts/arrow.png", 1, s->pos);
     }
     /* Else we malloc and initialize the list */
-    s->lstA = loadArrow(s->lstA, "./img/elts_green/arrow.bmp", 0, s->pos);
+    s->lstA = loadArrow(s->lstA, "./img/elts/arrow.png", 0, s->pos);
 }
 
 /* Free the memory taken by loadArrow */
@@ -232,161 +236,6 @@ void deleteArrow(Ship *s, ListeArrow elt){
     }
     elt->Asuiv->Aprec = elt->Aprec;
     elt->Aprec->Asuiv = elt->Asuiv;
+    glDeleteTextures(1, &elt->textureID);
     free(elt);
 }
-
-
-/************** MAIN ***************/
-
-
-int main(int argc, char** argv) {
-    WorldGame world;
-    int level = 0; /* Level of the game */
-
-    /* SDL initialization */
-    if(-1 == SDL_Init(SDL_INIT_VIDEO)) {
-        fprintf(stderr, "Impossible d'initialiser la SDL. Fin du programme.\n");
-        return EXIT_FAILURE;
-    }
-
-    /* Window opening and OpenGL context creation */
-    if(NULL == SDL_SetVideoMode(WINDOW_WIDTH, WINDOW_HEIGHT, BIT_PER_PIXEL, SDL_OPENGL | SDL_GL_DOUBLEBUFFER | SDL_RESIZABLE)) {
-        fprintf(stderr, "Impossible d'ouvrir la fenetre. Fin du programme.\n");
-        return EXIT_FAILURE;
-    }
-    /* Name of the window */
-    SDL_WM_SetCaption("Egypt of the future", NULL);
-
-    resizeViewport(WINDOW_WIDTH, WINDOW_HEIGHT);
-
-    int loop = 1;
-    glClearColor(0, 0, 0, 1.0);
-
-    /* Background loading */
-    Background bg1;
-    Background bg2;
-    float scrollSpeed = 0.009; /* Backgroundspeed */
-    loadBG(&bg1, "./img/fds/niv1bis.bmp", scrollSpeed, 0);
-    loadBG(&bg2, "./img/fds/niv1.bmp", scrollSpeed, 2);
-
-    /* Ship loading */
-    Ship ship;
-    int move = 0; /* Ship movement by default */
-    loadShip(&ship, "./img/elts_green/ship.bmp");
-
-    /* Assignment of the world */
-    world.ships = ship;
-    world.level = level;
-
-    /*********** LOOP **********/
-
-    while(loop) {
-
-        Uint32 startTime = SDL_GetTicks();
-
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        /* Drawing */
-        moveBackground(&bg1, 1);
-        moveBackground(&bg2, 1);
-        drawBG(&bg1, 1, 1);
-        drawBG(&bg2, 1, 1);
-        drawShip(&ship, 0.11, 0.135, move);
-
-        SDL_Event e;
-        while(SDL_PollEvent(&e)) {
-
-            switch(e.type) {
-
-                case SDL_QUIT:
-                    loop = 0;
-                    break;
-
-                /* A REVOIR PRBL DE RESIZE (CORRECTION DU TROP GRAND) */
-                 case SDL_VIDEORESIZE:
-                    if(e.resize.w > WINDOW_WIDTH || WINDOW_HEIGHT < e.resize.h){
-                        resizeViewport(WINDOW_WIDTH,WINDOW_HEIGHT);
-                        glClear(GL_COLOR_BUFFER_BIT);
-                        SDL_GL_SwapBuffers();
-                    }
-                    break;
-
-                case SDL_KEYDOWN:
-                    switch(e.key.keysym.sym) {
-                    printf("Keydown : %c\n", e.key.keysym.sym);
-                        case SDLK_q:
-                            loop = 0;
-                            break;
-                        case SDLK_ESCAPE:
-                            /* ABANDON */
-                            loop = 0;
-                            break;
-                        case SDLK_UP:
-                            /* GO UP */
-                            printf("UP\n");
-                            move = 1;
-                            break;
-                        case SDLK_DOWN:
-                            /* GO DOWN */
-                            printf("DOWN\n");
-                            move = -1;
-                            break;
-                        case SDLK_SPACE:
-                            /* SHOOT */
-                            printf("SHOOT\n");
-                            /* Fill the arrowlist into the ship structure */
-                            pushArrow(&ship);
-                            break;
-                        default:
-                            move = 0;
-                            break;
-                    }
-                    break;
-
-                case SDL_KEYUP:
-                    if(e.key.keysym.sym == SDLK_DOWN || e.key.keysym.sym == SDLK_UP){
-                        move = 0;
-                    }
-                    break;
-
-                default:
-                    break;
-                }
-            }
-
-        /* If move has changed */
-        if(move != 0){
-           moveShip(move, &ship);
-        }
-
-        /* When space touch is down -> ship.lstA is filled */
-        while(ship.lstA != NULL){
-            drawArrow(&(*ship.lstA), 0.04, 0.04);
-            if (moveArrow(&(*ship.lstA)) == 0){
-                deleteArrow(&ship, ship.lstA);
-            }
-        }
-
-        SDL_GL_SwapBuffers();
-        Uint32 elapsedTime = SDL_GetTicks() - startTime;
-        if(elapsedTime < FRAMERATE_MILLISECONDS) {
-            SDL_Delay(FRAMERATE_MILLISECONDS - elapsedTime);
-        }
-    }
-
-    // SDL_FreeSurface(ship);
-    // glDeleteTextures(1, &texture3);
-
-    SDL_Quit();
-
-    return EXIT_SUCCESS;
-}
-/************************************
-
-À faire :
-
-- Me rendre encore un peu plus propre ces séries de 3 fonctions que se balladent (parce que le jour où tu auras la mobs, les boss, les murs... tu vas avoir 15 fonctions différentes et ça c'est pas super cool
-
-Et puis là t'auras déjà une bonne base.
-
-*************************************/
