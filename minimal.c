@@ -118,7 +118,7 @@ void createImg(GLuint textureID, SDL_Surface* img){
     glBindTexture(GL_TEXTURE_2D, textureID);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    //SDL_SetColorKey(img,SDL_SRCCOLORKEY,SDL_MapRGBA(img->format,0,255,0,0));
+    SDL_SetColorKey(img,SDL_SRCCOLORKEY,SDL_MapRGB(img->format,0,255,0));
     glTexImage2D(
         GL_TEXTURE_2D,
         0,
@@ -216,10 +216,10 @@ void pushArrow(Ship *s){
             s->lstA = s->lstA->Asuiv;
         }
         /* Allocation of the new arrow & image loading in loadArrow*/
-        s->lstA = loadArrow(s->lstA, "./img/elts/arrow.png", 1, s->pos);
+        s->lstA = loadArrow(s->lstA, "./img/elts_green/arrow.bmp", 1, s->pos);
     }
     /* Else we malloc and initialize the list */
-    s->lstA = loadArrow(s->lstA, "./img/elts/arrow.png", 0, s->pos);
+    s->lstA = loadArrow(s->lstA, "./img/elts_green/arrow.bmp", 0, s->pos);
 }
 
 /* Free the memory taken by loadArrow */

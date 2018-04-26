@@ -27,13 +27,13 @@ int main(int argc, char** argv) {
     Background bg1;
     Background bg2;
     float scrollSpeed = 0.009; /* Backgroundspeed */
-    loadBG(&bg1, "./img/fds/niv1.jpg", scrollSpeed, 0);
-    loadBG(&bg2, "./img/fds/niv1.jpg", scrollSpeed, 2);
+    loadBG(&bg1, "./img/fds/niv1bis.bmp", scrollSpeed, 0);
+    loadBG(&bg2, "./img/fds/niv1.bmp", scrollSpeed, 2);
 
     /* Ship loading */
     Ship ship;
     int move = 0; /* Ship movement by default */
-    loadShip(&ship, "./img/elts/ship.png");
+    loadShip(&ship, "./img/elts_green/ship.bmp");
 
     /* Assignment of the world */
     world.ships = ship;
