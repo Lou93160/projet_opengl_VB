@@ -10,7 +10,7 @@ void resizeViewport(int w, int h) {
     WINDOW_HEIGHT = h;
     SDL_SetVideoMode(WINDOW_WIDTH, WINDOW_HEIGHT, BIT_PER_PIXEL, SDL_OPENGL | SDL_GL_DOUBLEBUFFER | SDL_RESIZABLE);
     glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-    glMatrixMode(GL_PROJECTION); // MODELVIEW?
+    glMatrixMode(GL_MODELVIEW); // PROJECTION?
     glLoadIdentity();
     gluOrtho2D(-1., 1., -1., 1.);
 }
@@ -77,18 +77,15 @@ void drawBG(Background *bg, float scaleW, float scaleH){
     glPopMatrix();       
 }
 
-/* Function which call the other specifics to draw arrow, bg or ship 
-Apply texture on a quads */
+/* Function which call the other specifics to draw arrow, bg or ship */
 void draw(GLuint textureID, float scaleW, float scaleH){
         /* Transparency */
-        //glEnable(GL_BLEND);
-        glEnable(GL_TEXTURE_2D);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        //glShadeModel(GL_SMOOTH);
         /* Brackground drawing */
+        glEnable(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, textureID);
             glPushMatrix();
-                glScalef(scaleW,scaleH,0);
+                glScalef(scaleW,scaleH,1.0); /* z à 1 */
                 glBegin(GL_QUADS);
                 glTexCoord2f(0,0);
                 glVertex2f(-1,1);
@@ -106,7 +103,6 @@ void draw(GLuint textureID, float scaleW, float scaleH){
 
         glDisable(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, 0);
-        //glDisable(GL_BLEND);
 }
 
 /*
@@ -114,59 +110,44 @@ A REVOIR LA TRANSPARENCE
 */
 
 /* Apply texture on image */
-void createImg(GLuint textureID, SDL_Surface* img){
-    glBindTexture(GL_TEXTURE_2D, textureID);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    SDL_SetColorKey(img,SDL_SRCCOLORKEY,SDL_MapRGB(img->format,0,255,0));
-    glTexImage2D(
-        GL_TEXTURE_2D,
-        0,
-        GL_RGBA,
-        img->w,
-        img->h,
-        0,
-        GL_BGR,
-        GL_UNSIGNED_BYTE,
-        img->pixels
-    );
-    /* Debind texture */
-    glBindTexture(GL_TEXTURE_2D, 0);
-    /* Free memory */
-    SDL_FreeSurface(img);
+void createImgAlpha(GLuint *textureID, SDL_Surface* img){	
+	glGenTextures(1,&(*textureID));
+	glBindTexture(GL_TEXTURE_2D,*textureID);
+	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,img->w,img->h,0,GL_RGBA,GL_UNSIGNED_BYTE,img->pixels);
+	glBindTexture(GL_TEXTURE_2D,0);
 }
 
+void createImg(GLuint *textureID, SDL_Surface* img){
+	glGenTextures(1,&(*textureID));
+	glBindTexture(GL_TEXTURE_2D,*textureID);
+	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,img->w,img->h,0,GL_RGB,GL_UNSIGNED_BYTE,img->pixels);
+	glBindTexture(GL_TEXTURE_2D,0);
+}
 /*
-Pareil pour ses 3 fonctions
+Pareil pour ces 3 fonctions
 */
 
 /* Initializes the bakcground and loads its image */
-void loadBG(Background *bg, const char *imgSrc, float speed, float pos){
+void loadBG(Background *bg, float speed, float pos){
     bg->position = pos;
     bg->speed = speed;
-    bg->img = SDL_LoadBMP(imgSrc);
-    if(bg->img == NULL){
-        printf("Error at loading BG image\n");
-        return;
-    }
-    glGenTextures(1, &bg->textureID);
-    createImg(bg->textureID, bg->img);
 }
 
 /* Initializes the ship and loads its image */
-void loadShip(Ship *s, const char *imgSrc){
+void loadShip(Ship *s){
     s->nb_life = 10;
     s->move = 0;
     s->pos = 0.0;
     s->speed = 0.03;
     s->lstA = NULL;
-    s->img = SDL_LoadBMP(imgSrc);
-    if(s->img == NULL){
-        printf("Error at loading SHIP image\n");
-        return;
-    }
-    glGenTextures(1, &s->textureID);
-    createImg(s->textureID, s->img);
+    //glGenTextures(1, &(s->textureID));
+    //createImg(s->textureID, s->img);
+	/*glBindTexture(GL_TEXTURE_2D,&s->textureID);
+	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,s->img->w,s->img->h,0,GL_RGBA,GL_UNSIGNED_BYTE,s->img->pixels);
+	glBindTexture(GL_TEXTURE_2D,0);*/
 }
 
 /* Function called by the pushArrow which allocs, load and return the list
@@ -195,13 +176,13 @@ ListeArrow loadArrow(ListeArrow list, const char *imgSrc, int pInList, float pos
     if(pInList == 1) list->Aprec = list;
     else list->Aprec = NULL;
     /* Image loading */
-    list->img = SDL_LoadBMP(imgSrc);
+    list->img = IMG_Load(imgSrc);
     if(list->img == NULL){
         printf("Error at loading ARROW image\n");
         return NULL;
     }
-    glGenTextures(1, &list->textureID);
-    createImg(list->textureID, list->img);
+    glGenTextures(1, &(list->textureID));
+    createImgAlpha(&list->textureID, list->img);
 
     return list;
 }
@@ -216,10 +197,10 @@ void pushArrow(Ship *s){
             s->lstA = s->lstA->Asuiv;
         }
         /* Allocation of the new arrow & image loading in loadArrow*/
-        s->lstA = loadArrow(s->lstA, "./img/elts_green/arrow.bmp", 1, s->pos);
+        s->lstA = loadArrow(s->lstA, "./img/elts/arrow.png", 1, s->pos);
     }
     /* Else we malloc and initialize the list */
-    s->lstA = loadArrow(s->lstA, "./img/elts_green/arrow.bmp", 0, s->pos);
+    s->lstA = loadArrow(s->lstA, "./img/elts/arrow.png", 0, s->pos);
 }
 
 /* Free the memory taken by loadArrow */
@@ -236,6 +217,17 @@ void deleteArrow(Ship *s, ListeArrow elt){
     }
     elt->Asuiv->Aprec = elt->Aprec;
     elt->Aprec->Asuiv = elt->Asuiv;
-    glDeleteTextures(1, &elt->textureID);
     free(elt);
 }
+
+
+
+/************************************
+
+À faire :
+
+- Me rendre encore un peu plus propre ces séries de 3 fonctions que se balladent (parce que le jour où tu auras la mobs, les boss, les murs... tu vas avoir 15 fonctions différentes et ça c'est pas super cool
+
+Et puis là t'auras déjà une bonne base.
+
+*************************************/

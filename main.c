@@ -1,10 +1,9 @@
-
 /************** MAIN ***************/
 
 
 int main(int argc, char** argv) {
-    WorldGame world;
-    int level = 0; /* Level of the game */
+    //WorldGame world;
+    //int level = 0; // Level of the game
 
     /* SDL initialization */
     if(-1 == SDL_Init(SDL_INIT_VIDEO)) {
@@ -22,26 +21,49 @@ int main(int argc, char** argv) {
 
     resizeViewport(WINDOW_WIDTH, WINDOW_HEIGHT);
 
+    int loop = 1;
+    glClearColor(0, 0, 0, 1.0);
 
     /* Background loading */
     Background bg1;
     Background bg2;
     float scrollSpeed = 0.009; /* Backgroundspeed */
-    loadBG(&bg1, "./img/fds/niv1bis.bmp", scrollSpeed, 0);
-    loadBG(&bg2, "./img/fds/niv1.bmp", scrollSpeed, 2);
+    loadBG(&bg1, scrollSpeed, 0);
+    loadBG(&bg2, scrollSpeed, 2);
+    SDL_Surface *imgBg1 = IMG_Load("./img/fds/niv1.png");
+    SDL_Surface *imgBg2 = IMG_Load("./img/fds/niv1bis.png");
+    if(bg1.img == NULL || bg2.img == NULL){
+        printf("Error at loading BG image\n");
+        exit(1);
+    }
+    GLuint idBg1, idBg2;
+    createImg(&idBg1, imgBg1);
+    createImg(&idBg2, imgBg2);
+    bg1.img = imgBg1;
+    bg2.img = imgBg2;
+    bg1.textureID = idBg1;
+    bg2.textureID = idBg2;
 
     /* Ship loading */
     Ship ship;
     int move = 0; /* Ship movement by default */
-    loadShip(&ship, "./img/elts_green/ship.bmp");
+    loadShip(&ship);
+
+	SDL_Surface *imgShip = IMG_Load("./img/elts/ship.png");
+    if(imgShip == NULL){
+        printf("Error at loading SHIP image\n");
+        exit(1);
+    }
+	GLuint idShip;
+	createImgAlpha(&idShip, imgShip);
+	ship.img = imgShip;
+	ship.textureID = idShip;
 
     /* Assignment of the world */
-    world.ships = ship;
-    world.level = level;
+    // world.ships = ship;
+    // world.level = level;
 
-    int loop = 1;
-    glClearColor(0, 0, 0, 1.0);
-
+	glEnable(GL_BLEND); /* [BAPT] J'ai rajouté ça ici */
 
     /*********** LOOP **********/
 
@@ -139,9 +161,9 @@ int main(int argc, char** argv) {
         }
     }
 
-    glDeleteTextures(1, &ship.textureID);
-    glDeleteTextures(1, &bg1.textureID);
-    glDeleteTextures(1, &bg2.textureID);
+    /* Free memory */
+    SDL_FreeSurface(imgShip);
+    // glDeleteTextures(1, &texture3);
 
     SDL_Quit();
 
