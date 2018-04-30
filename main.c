@@ -27,27 +27,25 @@ int main(int argc, char** argv) {
     /* Background loading */
     Background bg1;
     Background bg2;
-    float scrollSpeed = 0.009; /* Backgroundspeed */
-    loadBG(&bg1, scrollSpeed, 0);
-    loadBG(&bg2, scrollSpeed, 2);
+    float scrollSpeed = 0.001; /* Backgroundspeed */
+    bg1 = loadBG(scrollSpeed, 0);
+    bg2 = loadBG(scrollSpeed, 2);
     SDL_Surface *imgBg1 = IMG_Load("./img/fds/niv1.png");
     SDL_Surface *imgBg2 = IMG_Load("./img/fds/niv1bis.png");
-    if(bg1.img == NULL || bg2.img == NULL){
+    if(imgBg1 == NULL || imgBg2 == NULL){
         printf("Error at loading BG image\n");
         exit(1);
     }
     GLuint idBg1, idBg2;
     createImg(&idBg1, imgBg1);
     createImg(&idBg2, imgBg2);
-    bg1.img = imgBg1;
-    bg2.img = imgBg2;
     bg1.textureID = idBg1;
     bg2.textureID = idBg2;
 
     /* Ship loading */
     Ship ship;
     int move = 0; /* Ship movement by default */
-    loadShip(&ship);
+    ship = loadShip();
 
 	SDL_Surface *imgShip = IMG_Load("./img/elts/ship.png");
     if(imgShip == NULL){
@@ -56,14 +54,27 @@ int main(int argc, char** argv) {
     }
 	GLuint idShip;
 	createImgAlpha(&idShip, imgShip);
-	ship.img = imgShip;
 	ship.textureID = idShip;
 
-    /* Assignment of the world */
-    // world.ships = ship;
-    // world.level = level;
+	/* Arrow loading */
+    SDL_Surface *imgArrow = IMG_Load("./img/elts/arrow.png");
+    if(imgArrow == NULL){
+        printf("Error at loading ARROW image\n");
+        exit(1);
+    }
+    /* Image loading */
+    GLuint idArrow;
+    glGenTextures(1, &(idArrow));
+    createImgAlpha(&idArrow, imgArrow);
 
-	glEnable(GL_BLEND); /* [BAPT] J'ai rajouté ça ici */
+    /* Elements ppm initalization */
+    ListeElement bonus = NULL;
+    ListeElement mobs = NULL;
+    ListeElement obstacles = NULL;
+    float speedElement = 0.0;
+    pushElements(&bonus, &mobs, &obstacles);
+
+	glEnable(GL_BLEND);
 
     /*********** LOOP **********/
 
@@ -72,13 +83,17 @@ int main(int argc, char** argv) {
         Uint32 startTime = SDL_GetTicks();
 
         glClear(GL_COLOR_BUFFER_BIT);
+        speedElement+=0.2;
 
         /* Drawing */
         moveBackground(&bg1, 1);
         moveBackground(&bg2, 1);
         drawBG(&bg1, 1, 1);
         drawBG(&bg2, 1, 1);
-        drawShip(&ship, 0.11, 0.135, move);
+        drawShip(&ship, 0.11/1.2, 0.135/1.2, move);
+        drawListElements(bonus, speedElement);
+	    drawListElements(mobs,speedElement);
+	    drawListElements(obstacles,speedElement);
 
         SDL_Event e;
         while(SDL_PollEvent(&e)) {
@@ -122,7 +137,7 @@ int main(int argc, char** argv) {
                             /* SHOOT */
                             printf("SHOOT\n");
                             /* Fill the arrowlist into the ship structure */
-                            pushArrow(&ship);
+                            pushArrow(&ship, idArrow);
                             break;
                         default:
                             move = 0;
@@ -148,7 +163,7 @@ int main(int argc, char** argv) {
 
         /* When space touch is down -> ship.lstA is filled */
         while(ship.lstA != NULL){
-            drawArrow(&(*ship.lstA), 0.04, 0.04);
+            drawArrow(&(*ship.lstA), 0.04/1.2, 0.04/1.2);
             if (moveArrow(&(*ship.lstA)) == 0){
                 deleteArrow(&ship, ship.lstA);
             }
@@ -163,7 +178,9 @@ int main(int argc, char** argv) {
 
     /* Free memory */
     SDL_FreeSurface(imgShip);
-    // glDeleteTextures(1, &texture3);
+    SDL_FreeSurface(imgBg1);
+    SDL_FreeSurface(imgBg2);
+    //glDeleteTextures(1, &texture3);
 
     SDL_Quit();
 
