@@ -2,8 +2,8 @@
 
 
 int main(int argc, char** argv) {
-    //WorldGame world;
-    //int level = 0; // Level of the game
+    WorldGame world;
+    int level = 1; // Level of the game
 
     /* SDL initialization */
     if(-1 == SDL_Init(SDL_INIT_VIDEO)) {
@@ -71,8 +71,15 @@ int main(int argc, char** argv) {
     ListeElement bonus = NULL;
     ListeElement mobs = NULL;
     ListeElement obstacles = NULL;
+    ListeElement keys = NULL;
     float speedElement = 0.0;
-    pushElements(&bonus, &mobs, &obstacles);
+    pushElements(&bonus, &mobs, &obstacles, &keys, level);
+    world.bonus = bonus;
+    world.mobs = mobs;
+    world.obstacles = obstacles;
+    world.keys = keys;
+
+    world.ships = ship;
 
 	glEnable(GL_BLEND);
 
@@ -83,7 +90,7 @@ int main(int argc, char** argv) {
         Uint32 startTime = SDL_GetTicks();
 
         glClear(GL_COLOR_BUFFER_BIT);
-        speedElement+=0.2;
+        speedElement+=0.4; // 0.15 de base
 
         /* Drawing */
         moveBackground(&bg1, 1);
@@ -94,6 +101,8 @@ int main(int argc, char** argv) {
         drawListElements(bonus, speedElement);
 	    drawListElements(mobs,speedElement);
 	    drawListElements(obstacles,speedElement);
+	    drawListElements(keys, speedElement);
+	   // printf("%f %f %f %f\n", ship.bbox[0], ship.bbox[1], ship.bbox[2], ship.bbox[3]);
 
         SDL_Event e;
         while(SDL_PollEvent(&e)) {
@@ -156,9 +165,10 @@ int main(int argc, char** argv) {
                 }
             }
 
+        collisionTest(&world);
         /* If move has changed */
         if(move != 0){
-           moveShip(move, &ship);
+           moveShip(move, &world, &ship);
         }
 
         /* When space touch is down -> ship.lstA is filled */
@@ -169,6 +179,11 @@ int main(int argc, char** argv) {
             }
         }
 
+        /* No more ship life */
+        if(ship.nb_life == 0){
+        	printf("GAME OVER\n");
+        	loop = 0;
+        }
         SDL_GL_SwapBuffers();
         Uint32 elapsedTime = SDL_GetTicks() - startTime;
         if(elapsedTime < FRAMERATE_MILLISECONDS) {
